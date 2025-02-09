@@ -9,12 +9,12 @@ export class ServiceStack extends cdk.Stack {
     super(scope, id, props);
 
     // Define the SQS queue
-    const queue = new sqs.Queue(this, "MyQueue", {
-      queueName: "MyQueue",
+    const queue = new sqs.Queue(this, "ExampleQueue", {
+      queueName: "ExampleQueue",
     });
 
     // Lambda Function
-    const serviceFn = new lambda.Function(this, "ServiceLambda", {
+    const serviceFn = new lambda.Function(this, "ExampleServiceLambda", {
       runtime: lambda.Runtime.NODEJS_18_X,
       code: lambda.Code.fromAsset(path.join(__dirname, "handler/dist")),
       handler: "index.handler",

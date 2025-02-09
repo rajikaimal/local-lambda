@@ -10,7 +10,6 @@ program
   .name("local-lambda")
   .description("local lambda cli")
   .version("1.0.0")
-  .option("-d, --debug", "Enable debug mode")
   .action((options) => {
     if (options.debug) {
       console.log("Debug mode is ON");
@@ -19,19 +18,22 @@ program
     }
   });
 
-program.command("dev").action(async () => {
-  console.log("building lambda");
+program
+  .command("dev")
+  .option("-l, --fn <fn>", "Lambda to debug")
+  .action(async (opts: { fn: string }) => {
+    const { fn } = opts;
 
-  // stub
-  await buildStub();
-  await deployStub();
+    // stub
+    // await buildStub();
+    // await deployStub({ functionName: fn });
 
-  // application
-  await buildApplicationLambda();
-  await watcher();
+    // application
+    await buildApplicationLambda();
+    await watcher();
 
-  // subscribe to IOT endpoint
-  await subscribe();
-});
+    // subscribe to IOT endpoint
+    await subscribe();
+  });
 
 program.parse(process.argv);
