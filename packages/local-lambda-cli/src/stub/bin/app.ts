@@ -8,17 +8,22 @@ import {
 } from "@aws-sdk/client-cloudformation";
 import { LocalLambdaStack } from "../infra";
 
-const app = new cdk.App();
-const stack = new LocalLambdaStack(app, "LocalLambdaStack", {
-  env: {
-    account: process.env.CDK_DEFAULT_ACCOUNT, // Uses the AWS CLI or environment variables
-    region: process.env.CDK_DEFAULT_REGION, // Uses the AWS CLI or environment variables
-  },
-});
-
 // Function to deploy the stack
-async function deployStubStack(): Promise<void> {
+async function deployStubStack({
+  functionName,
+}: {
+  functionName: string;
+}): Promise<void> {
   // Synthesize the entire app to get the CloudFormation template
+
+  const app = new cdk.App();
+  const stack = new LocalLambdaStack(app, "LocalLambdaV2Stack", {
+    env: {
+      account: process.env.CDK_DEFAULT_ACCOUNT, // Uses the AWS CLI or environment variables
+      region: process.env.CDK_DEFAULT_REGION, // Uses the AWS CLI or environment variables
+    },
+    functionName,
+  });
   const cloudFormationTemplate = app
     .synth()
     .getStackByName(stack.stackName)?.template;

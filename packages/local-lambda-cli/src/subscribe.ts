@@ -1,9 +1,11 @@
-import { IoTClient, DescribeEndpointCommand } from "@aws-sdk/client-iot";
+import { DescribeEndpointCommand, IoTClient } from "@aws-sdk/client-iot";
+import { Credentials } from "@aws-sdk/client-sts";
 import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
 import iotSdk from "aws-iot-device-sdk";
+import { logger } from "./logger";
 import worker from "./worker";
 
-async function subscribe() {
+async function subscribe({ credentials }: { credentials: Credentials }) {
   const provider = fromNodeProviderChain({
     clientConfig: { region: "eu-west-3" },
     // profile: "profile",
@@ -41,7 +43,7 @@ async function subscribe() {
   const response = await iot.send(
     new DescribeEndpointCommand({
       endpointType: "iot:Data-ATS",
-    }),
+    })
   );
 
   const device = new iotSdk.device({
@@ -59,31 +61,32 @@ async function subscribe() {
   device.subscribe(topic, { qos: 1 });
 
   device.on("connect", () => {
-    // console.log("connect");
+    // logger.info("connect");
   });
 
   device.on("error", (err) => {
-    console.log("error");
+    logger.info("error");
   });
 
   device.on("close", () => {
-    console.log("close");
+    logger.info("close");
   });
 
   device.on("reconnect", () => {
-    console.log("reconnect");
+    logger.info("reconnect");
   });
 
   device.on("message", async (topic, payload) => {
-    console.log("connected to endpoint", response.endpointAddress);
+    logger.info("connected to endpoint", response.endpointAddress);
 
     const event = JSON.parse(payload.toString());
-    console.log("received event", event);
+    logger.info("received event", event);
     // run the node.js worker
     const workerData = {
       event,
+      credentials,
     };
-    console.log("invoking worker");
+    logger.info("invoking worker");
     await worker(workerData);
   });
 }

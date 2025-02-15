@@ -7,7 +7,8 @@
     "llambda": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc && cp src/workerProcess.mjs dist",
+    "build": "tsc && cp src/workerProcess.mjs dist && ts-node src/buildStub.ts && rm -rf dist/stub/handler && cp -rf src/stub/handler dist/stub && cp local-lambda-stub.zip dist/stub",
+    "build:watch": "nodemon --exec pnpm build",
     "start": "node --enable-source-maps dist/main.js",
     "dev-mode": "ts-node src/index.ts"
   },
@@ -24,6 +25,7 @@
     "@aws-sdk/client-lambda": "^3.738.0",
     "@aws-sdk/client-sts": "^3.738.0",
     "@aws-sdk/credential-provider-node": "^3.738.0",
+    "archiver": "^7.0.1",
     "aws-cdk-lib": "^2.167.1",
     "aws-crt": "^1.25.0",
     "aws-iot-device-sdk": "^2.2.15",
@@ -31,6 +33,7 @@
     "chokidar": "^4.0.3",
     "commander": "^13.0.0",
     "constructs": "^10.4.2",
+    "kleur": "^4.1.5",
     "local-lambda": "workspace:*",
     "mqtt": "^5.10.3",
     "ts-node": "^10.9.2",
@@ -38,10 +41,18 @@
   },
   "devDependencies": {
     "@aws-sdk/credential-providers": "^3.738.0",
+    "@types/archiver": "^6.0.3",
     "@types/aws-iot-device-sdk": "^2.2.8",
     "@types/aws-lambda": "^8.10.145",
     "@types/mqtt": "^2.5.0",
     "@types/node": "^22.9.0",
+    "nodemon": "^3.1.9",
     "typescript": "^5.6.3"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "test/*",
+      "dist/*"
+    ]
   }
 }

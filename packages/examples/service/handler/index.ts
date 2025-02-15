@@ -11,7 +11,7 @@ export const handler = async (event) => {
   };
 
   try {
-    // const result = await sqs.send(new SendMessageCommand(params));
+    const result = await sqs.send(new SendMessageCommand(params));
     console.log("Message sent to SQS new msg!!! :");
     return {
       status: 200,

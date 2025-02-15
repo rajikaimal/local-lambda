@@ -1,10 +1,9 @@
 import esbuild from "esbuild";
-import config from "./config";
+import { logger } from "./logger";
+import path from "node:path";
 
 const buildApplicationLambda = async () => {
   console.log("building function ...");
-  // todo: remove isDev
-  const isDev = config.isDev;
 
   await esbuild.build({
     platform: "node",
@@ -18,12 +17,8 @@ const buildApplicationLambda = async () => {
         `const __dirname = topLevelFileUrlToPath(new topLevelURL(".", import.meta.url))`,
       ].join("\n"),
     },
-    outfile: isDev
-      ? "../examples/service/handler/dist/index.mjs"
-      : "./handler/dist/index.mjs",
-    entryPoints: [
-      isDev ? "../examples/service/handler/index.ts" : "./handler/index.ts",
-    ],
+    outfile: "./handler/dist/index.mjs",
+    entryPoints: ["./handler/index.ts"],
     sourcemap: true,
   });
 
@@ -33,17 +28,18 @@ const buildApplicationLambda = async () => {
 const buildStub = async () => {
   try {
     await esbuild.build({
-      entryPoints: ["src/stub/handler/index.ts"], // Entry file
-      bundle: true, // Bundle dependencies
-      minify: true, // Minify output for smaller file size
-      platform: "node", // Target Node.js environment
-      target: "node18", // Target Node.js 18
-      outfile: "src/stub/handler/dist/index.js", // Output file
+      entryPoints: [path.resolve(__dirname, "stub/handler/index.js")], // Entry file
+      bundle: true,
+      minify: true,
+      format: "esm",
+      platform: "node",
+      target: "esnext",
+      outfile: path.resolve(__dirname, "stub/handler/dist/index.mjs"),
     });
 
-    console.log("Stub Lambda build successful!");
+    logger.info("Stub Lambda build successful!");
   } catch (error) {
-    console.error("Stub Lambda build failed:", error);
+    logger.error("Stub Lambda build failed:", error);
     process.exit(1); // Exit with an error code
   }
 };

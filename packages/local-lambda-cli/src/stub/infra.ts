@@ -14,10 +14,10 @@ export type StackProps = cdk.StackProps & {
 };
 
 export class LocalLambdaStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, props: StackProps) {
     super(scope, id, props);
-    // Lambda Function to debug
-    const functionName = props?.functionName as string;
+    // Lambda function to debug
+    const functionName = props.functionName;
 
     // IoT Thing
     const iotThing = new iot.CfnThing(this, "LocalLambdaIotThing", {
@@ -83,7 +83,8 @@ export class LocalLambdaStack extends cdk.Stack {
         runtime: lambda.Runtime.NODEJS_18_X, // or another runtime of your choice
         handler: "index.onEvent", // points to the onEvent handler in your index.ts file
         code: lambda.Code.fromInline(`
-        const { LambdaClient, UpdateFunctionCodeCommand } = require("@aws-sdk/client-lambda");
+        const { LambdaClient, UpdateFunctionCodeCommand, GetFunctionCommand } = require("@aws-sdk/client-lambda");
+        const { IAMClient, PutRolePolicyCommand, UpdateAssumeRolePolicyCommand } = require("@aws-sdk/client-iam");
 
         exports.onEvent = async (event) => {
           console.log("Received event:", JSON.stringify(event, null, 2));
@@ -102,6 +103,56 @@ export class LocalLambdaStack extends cdk.Stack {
               const response = await lambda.send(command);
 
               console.log("Lambda update response:", response);
+              console.log("Updating role");
+
+              console.log("Fetching lambda role details");
+
+              const getFunctionCommand = new GetFunctionCommand({
+                FunctionName: "${functionName}",
+              });
+              const lambdaData = await lambda.send(getFunctionCommand);
+              const roleName = lambdaData.Configuration.Role.split('/').pop(); // Extract role name from ARN
+
+              console.log("Role name:", roleName);
+
+              const iamClient = new IAMClient({ region: "eu-west-3" });
+              const roleCommand = new PutRolePolicyCommand({
+                RoleName: roleName,
+                PolicyName: "IoTPolicy",
+                PolicyDocument: JSON.stringify({
+                  Version: "2012-10-17",
+                  Statement: [{ Effect: "Allow", Action: "iot:Publish", Resource: "*" }],
+                }),
+              });
+              const roleResp = await iamClient.send(roleCommand);
+              console.log("Role update response:", roleResp);
+
+              console.log("Updating trust relationship");
+
+              // llambda cli should be able to assume role hence this update
+              const newTrustPolicy = {
+                Version: '2012-10-17',
+                Statement: [
+                  {
+                    Effect: 'Allow',
+                    Principal: { Service: 'lambda.amazonaws.com' },
+                    Action: 'sts:AssumeRole',
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "AWS": "arn:aws:iam::376461377045:user/admin"
+                    },
+                    "Action": "sts:AssumeRole"
+                  }
+                ],
+              };
+              const updateTrustPolicyCommand = new UpdateAssumeRolePolicyCommand({
+                RoleName: roleName,
+                PolicyDocument: JSON.stringify(newTrustPolicy),
+              });
+              const updateTrustPolicyResp = await iamClient.send(updateTrustPolicyCommand);
+              console.log("Trust policy updated", updateTrustPolicyResp);
             } catch (error) {
               console.error("Error updating Lambda function:", error);
               throw error;
@@ -120,7 +171,7 @@ export class LocalLambdaStack extends cdk.Stack {
     );
 
     stubProviderLambda.role?.attachInlinePolicy(
-      new iam.Policy(this, "stub-lambda-policy", {
+      new iam.Policy(this, "StubLambdaPolicy", {
         statements: [
           new iam.PolicyStatement({
             actions: ["lambda:UpdateFunctionCode"],
@@ -129,8 +180,18 @@ export class LocalLambdaStack extends cdk.Stack {
             ],
           }),
           new iam.PolicyStatement({
-            actions: ["iot:Publish"],
-            resources: ["*"], // Replace with more restrictive resource ARNs in production
+            actions: ["lambda:GetFunction"],
+            resources: [
+              `arn:aws:lambda:${this.region}:${this.account}:function:${functionName}`,
+            ],
+          }),
+          new iam.PolicyStatement({
+            actions: ["iam:UpdateAssumeRolePolicy"],
+            resources: ["*"],
+          }),
+          new iam.PolicyStatement({
+            actions: ["iam:PutRolePolicy"],
+            resources: ["*"],
           }),
         ],
       })
@@ -147,7 +208,7 @@ export class LocalLambdaStack extends cdk.Stack {
     new CustomResource(this, "StubCustomResource", {
       serviceToken: customResourceProvider.serviceToken,
       properties: {
-        Version: "6", // Change this number to force an update
+        deployement: Math.random(), // this is to invoke custom resource whenver the cli process starts
       },
     });
 
