@@ -1,7 +1,7 @@
 import { deployStack } from "./stub/bin/app";
 
-const deployStub = async ({ functionName }: { functionName: string }) => {
-  await deployStack({ functionName });
+const deployStub = async () => {
+  await deployStack();
 };
 
 export default deployStub;

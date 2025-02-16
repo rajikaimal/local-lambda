@@ -19,23 +19,18 @@ program
     }
   });
 
-program
-  .command("dev")
-  .option("-l, --fn <fn>", "Lambda to debug")
-  .action(async (opts: { fn: string }) => {
-    const { fn } = opts;
+program.command("dev").action(async () => {
+  // stub
+  await buildStub();
+  await deployStub();
 
-    // stub
-    await buildStub();
-    await deployStub({ functionName: fn });
+  // application
+  await buildApplicationLambda();
+  await watcher();
 
-    // application
-    await buildApplicationLambda();
-    await watcher();
-
-    // subscribe to IOT endpoint
-    const credentials = (await assumeRole()) as Credentials;
-    await subscribe({ credentials });
-  });
+  // subscribe to IOT endpoint
+  const credentials = (await assumeRole()) as Credentials;
+  await subscribe({ credentials });
+});
 
 program.parse(process.argv);
