@@ -1,4 +1,4 @@
-# local-lambda
+# local-lambda-cli
 
 `local-lambda` is a CLI to test AWS Lambda functions locally.
 
