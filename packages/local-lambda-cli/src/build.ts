@@ -3,7 +3,7 @@ import { logger } from "./logger";
 import path from "node:path";
 
 const buildApplicationLambda = async () => {
-  console.log("building function ...");
+  logger.info("Building function ...");
 
   await esbuild.build({
     platform: "node",
@@ -22,7 +22,7 @@ const buildApplicationLambda = async () => {
     sourcemap: true,
   });
 
-  console.log("build done!");
+  logger.info("Build done!");
 };
 
 const buildStub = async () => {

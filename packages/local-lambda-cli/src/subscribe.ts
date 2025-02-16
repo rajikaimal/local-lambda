@@ -11,7 +11,7 @@ import {
 
 async function subscribe({ credentials }: { credentials: Credentials }) {
   const provider = fromNodeProviderChain({
-    clientConfig: { region: "eu-west-3" },
+    clientConfig: { region: process.env.AWS_REGION },
     // profile: "profile",
     // roleArn: "",
     // mfaCodeProvider: async (serialArn: string) => {
@@ -40,7 +40,7 @@ async function subscribe({ credentials }: { credentials: Credentials }) {
   const creds = await provider();
 
   const iot = new IoTClient({
-    region: "eu-west-3",
+    region: process.env.AWS_REGION,
     credentials: provider,
   });
 
@@ -53,7 +53,7 @@ async function subscribe({ credentials }: { credentials: Credentials }) {
   const device = new iotSdk.device({
     protocol: "wss",
     host: response.endpointAddress,
-    region: "eu-west-3",
+    region: process.env.AWS_REGION,
     accessKeyId: creds.accessKeyId,
     secretKey: creds.secretAccessKey,
     sessionToken: creds.sessionToken,

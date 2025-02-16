@@ -115,7 +115,7 @@ export class LocalLambdaStack extends cdk.Stack {
 
               console.log("Role name:", roleName);
 
-              const iamClient = new IAMClient({ region: "eu-west-3" });
+              const iamClient = new IAMClient({ region: "${process.env.AWS_REGION}" });
               const roleCommand = new PutRolePolicyCommand({
                 RoleName: roleName,
                 PolicyName: "IoTPolicy",

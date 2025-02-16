@@ -19,8 +19,6 @@ try {
   archive.pipe(output);
   archive.directory(path.resolve(__dirname, "stub/handler/dist/"), false); // Add a whole folder
   archive.finalize();
-
-  console.info("Stub Lambda build successful!");
 } catch (error) {
   console.error("Stub Lambda build failed:", error);
   process.exit(1); // Exit with an error code

@@ -2,8 +2,8 @@ import { GetFunctionCommand, LambdaClient } from "@aws-sdk/client-lambda";
 import { STSClient, AssumeRoleCommand } from "@aws-sdk/client-sts";
 
 const assumeRole = async () => {
-  const client = new STSClient({ region: "eu-west-3" });
-  const lambda = new LambdaClient({ region: "eu-west-3" });
+  const client = new STSClient({});
+  const lambda = new LambdaClient({});
 
   const getFunctionCommand = new GetFunctionCommand({
     FunctionName: process.env.FN,
