@@ -8,7 +8,6 @@ const watcher = () => {
   const currentDir = path.resolve(".");
   logger.info(`Watching directory: ${currentDir}`);
 
-  // todo: remove isDev
   const watcher = chokidar.watch(currentDir, {
     persistent: true,
     ignoreInitial: true,
