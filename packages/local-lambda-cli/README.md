@@ -19,9 +19,9 @@ npm i -g @rajikaimal/llambda
 
 Set following env variables.
 
-- APP - application to which the Lambda belongs to
-- SERVICE - service to which the Lambda belongs to
-- FN - The Lambda function name
+- `APP` - application to which the Lambda belongs to
+- `SERVICE` - service to which the Lambda belongs to
+- `FN` - The Lambda function name
 
 Navigate to the handler directory of the function and run,
 
