@@ -26,7 +26,7 @@ Set following env variables.
 Navigate to the handler directory of the function and run,
 
 ```
-llambda
+llambda dev
 ```
 
 MIT
