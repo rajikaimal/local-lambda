@@ -3,3 +3,4 @@ dist
 certs
 cert.csr
 cdk.out
+.DS_Store

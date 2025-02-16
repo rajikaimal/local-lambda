@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "path";
 
 try {
-  esbuild.build({
+  esbuild.buildSync({
     entryPoints: [path.resolve(__dirname, "stub/handler/index.ts")],
     bundle: true,
     minify: true,
