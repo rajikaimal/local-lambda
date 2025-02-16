@@ -5,13 +5,11 @@ import config from "./config";
 import { logger } from "./logger";
 
 const watcher = () => {
-  const isDev = config.isDev;
-  const supportDir = path.resolve("../examples/service/");
   const currentDir = path.resolve(".");
   logger.info(`Watching directory: ${currentDir}`);
 
   // todo: remove isDev
-  const watcher = chokidar.watch(isDev ? supportDir : currentDir, {
+  const watcher = chokidar.watch(currentDir, {
     persistent: true,
     ignoreInitial: true,
     ignored: ["node_modules/**", "**/.git/**", "**/dist"], // Exclude specific directories

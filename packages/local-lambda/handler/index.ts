@@ -6,7 +6,7 @@ import {
 const iotClient = new IoTDataPlaneClient({ region: process.env.AWS_REGION });
 
 export const handler = async (event: any, context: any) => {
-  const topic = "local/process/topic";
+  const topic = `local-lambda/${process.env.APP}/${process.env.SERVICE}/${process.env.FN}`;
   const message = JSON.stringify({
     event,
     context,

@@ -46,7 +46,7 @@ export class LocalLambdaStack extends cdk.Stack {
       {
         certificateSigningRequest: certificatePem,
         status: "ACTIVE",
-      },
+      }
     );
 
     // Attach the Certificate to the IoT Policy
@@ -67,7 +67,10 @@ export class LocalLambdaStack extends cdk.Stack {
       code: lambda.Code.fromAsset(path.join(__dirname, "handler/dist")),
       handler: "index.handler",
       environment: {
-        IOT_TOPIC: "local/process/topic", // Topic to publish messages to
+        IOT_TOPIC: `local-lambda/${process.env.APP}/${process.env.SERVICE}/${process.env.FN}`, // Topic to publish messages to
+        APP: process.env.app as string,
+        SERVICE: process.env.app as string,
+        FN: process.env.app as string,
       },
     });
 
@@ -76,7 +79,7 @@ export class LocalLambdaStack extends cdk.Stack {
       new iam.PolicyStatement({
         actions: ["iot:Publish"],
         resources: ["*"], // Replace with more restrictive resource ARNs in production
-      }),
+      })
     );
 
     // Outputs for local process configuration

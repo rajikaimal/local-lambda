@@ -3,7 +3,6 @@ import subscribe from "./subscribe";
 import { buildApplicationLambda, buildStub } from "./build";
 import watcher from "./watcher";
 import deployStub from "./deployStub";
-import kleur from "kleur";
 import { logger } from "./logger";
 import assumeRole from "./assumeRole";
 import { Credentials } from "@aws-sdk/client-sts";

@@ -121,7 +121,20 @@ export class LocalLambdaStack extends cdk.Stack {
                 PolicyName: "IoTPolicy",
                 PolicyDocument: JSON.stringify({
                   Version: "2012-10-17",
-                  Statement: [{ Effect: "Allow", Action: "iot:Publish", Resource: "*" }],
+                  Statement: [
+                    {
+                      "Effect": "Allow",
+                      "Action": "iot:Publish",
+                      "Resource": "*"
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "iot:*"
+                      ],
+                      "Resource": "*"
+                    }
+                  ],
                 }),
               });
               const roleResp = await iamClient.send(roleCommand);

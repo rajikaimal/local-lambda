@@ -16,15 +16,14 @@ export const handler = async (event) => {
     return {
       status: 200,
       data: "ok",
+      result: result,
       queue: process.env.QUEUE_URL,
-      meta: event,
     };
   } catch (error) {
     console.error("Error sending message to SQS:", error);
     return {
       status: 500,
       data: error,
-      // result,
     };
   }
 };
