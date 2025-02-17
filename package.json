@@ -13,7 +13,8 @@
   "author": "",
   "license": "MIT",
   "engines": {
-    "node": ">=22.11.0"
+    "node": ">=22.11.0",
+    "pnpm": ">=10.4.1"
   },
   "type": "module",
   "devDependencies": {

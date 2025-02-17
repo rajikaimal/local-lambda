@@ -12,7 +12,7 @@
 ## Install
 
 ```
-npm i -g @rajikaimal/llambda
+$ npm i -g @rajikaimal/llambda
 ```
 
 ## Usage
@@ -27,6 +27,13 @@ Navigate to the handler directory of the function and run,
 
 ```
 llambda dev
+```
+
+## pnpm
+
+```
+$ corepack enable
+$ corepack use pnpm@10.4.1
 ```
 
 MIT

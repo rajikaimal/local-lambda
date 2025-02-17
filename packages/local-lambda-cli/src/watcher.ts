@@ -16,7 +16,9 @@ const watcher = () => {
 
   watcher.on("change", async (path) => {
     logger.info("Rebuilding");
-    await buildApplicationLambda();
+    try {
+      await buildApplicationLambda();
+    } catch (e) {}
   });
 
   watcher.on("error", (error) => logger.info(`Watcher error: ${error}`));

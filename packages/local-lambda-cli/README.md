@@ -12,7 +12,7 @@
 ## Install
 
 ```
-npm i -g @rajikaimal/llambda
+$ npm i -g @rajikaimal/llambda
 ```
 
 ## Usage
