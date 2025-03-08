@@ -21,7 +21,7 @@ client.send(command).then((res) => {
     protocol: "wss",
     debug: true,
     host: res.endpointAddress,
-    region: "eu-west-3",
+    region: process.env.AWS_REGION,
     keepalive: 60,
   });
   device.on("error", console.log);

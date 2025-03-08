@@ -4,10 +4,8 @@ import * as iot from "aws-cdk-lib/aws-iot";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import { CustomResource } from "aws-cdk-lib/core";
 import { Provider } from "aws-cdk-lib/custom-resources";
-import * as fs from "fs";
 
 import { Construct } from "constructs";
-import path from "path";
 
 export type StackProps = cdk.StackProps & {
   functionName: string;
@@ -20,12 +18,12 @@ export class LocalLambdaStack extends cdk.Stack {
     const functionName = props.functionName;
 
     // IoT Thing
-    const iotThing = new iot.CfnThing(this, "LocalLambdaIotThing", {
+    new iot.CfnThing(this, "LocalLambdaIotThing", {
       thingName: "LocalLambdaThing",
     });
 
     // IoT Policy
-    const iotPolicy = new iot.CfnPolicy(this, "LocalLambdaIotPolicy", {
+    new iot.CfnPolicy(this, "LocalLambdaIotPolicy", {
       policyName: "LocalLambdaIotPolicy",
       policyDocument: {
         Version: "2012-10-17",
@@ -44,38 +42,7 @@ export class LocalLambdaStack extends cdk.Stack {
       },
     });
 
-    const certificatePem = fs
-      .readFileSync(path.join(__dirname, "cert.csr"), "utf8")
-      .toString();
-
-    // const response = await iot
-    //   .createKeysAndCertificate({
-    //     setAsActive: true, // Optional: set the certificate as active immediately
-    //   })
-    //   .promise();
-
-    // IoT Certificate
-    const iotCertificate = new iot.CfnCertificate(
-      this,
-      "LocalLambdaIotCertificate",
-      {
-        certificateSigningRequest: certificatePem,
-        status: "ACTIVE",
-      }
-    );
-
-    // Attach the Certificate to the IoT Policy
-    new iot.CfnPolicyPrincipalAttachment(this, "PolicyAttachment", {
-      policyName: iotPolicy.policyName!,
-      principal: iotCertificate.attrArn,
-    });
-
-    // Attach the Certificate to the IoT Thing
-    new iot.CfnThingPrincipalAttachment(this, "ThingCertificateAttachment", {
-      thingName: iotThing.thingName!,
-      principal: iotCertificate.attrArn,
-    });
-
+    // Stub Lambda
     const stubProviderLambda = new lambda.Function(
       this,
       "StubProviderLambdaFn",
@@ -228,9 +195,6 @@ export class LocalLambdaStack extends cdk.Stack {
     // Outputs for local process configuration
     new cdk.CfnOutput(this, "IotEndpoint", {
       value: cdk.Fn.sub("${AWS::Region}.amazonaws.com"), // IoT endpoint
-    });
-    new cdk.CfnOutput(this, "IotCertificateArnUpdate", {
-      value: iotCertificate.attrArn,
     });
   }
 }

@@ -12,29 +12,6 @@ import {
 async function subscribe({ credentials }: { credentials: Credentials }) {
   const provider = fromNodeProviderChain({
     clientConfig: { region: process.env.AWS_REGION },
-    // profile: "profile",
-    // roleArn: "",
-    // mfaCodeProvider: async (serialArn: string) => {
-    //   const readline = await import("readline");
-    //   const rl = readline.createInterface({
-    //     input: process.stdin,
-    //     output: process.stdout,
-    //   });
-    //   return new Promise<string>((resolve) => {
-    //     Logger.debug(`Require MFA token for serial ARN ${serialArn}`);
-    //     const prompt = () =>
-    //       rl.question(`Enter MFA code for ${serialArn}: `, async (input) => {
-    //         if (input.trim() !== "") {
-    //           resolve(input.trim());
-    //           rl.close();
-    //         } else {
-    //           // prompt again if no input
-    //           prompt();
-    //         }
-    //       });
-    //     prompt();
-    //   });
-    // },
   });
 
   const creds = await provider();
@@ -91,7 +68,7 @@ async function subscribe({ credentials }: { credentials: Credentials }) {
       const result = await worker(workerData);
 
       const iotClient = new IoTDataPlaneClient({
-        region: "eu-west-3",
+        region: process.env.AWS_REGION,
         credentials: provider,
       });
 

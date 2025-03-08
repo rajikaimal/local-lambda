@@ -27,9 +27,7 @@ async function fetchNarutoCharacters(): Promise<Character[]> {
   return data.characters;
 }
 
-const sqs = new SQSClient({
-  region: "eu-west-3",
-});
+const sqs = new SQSClient();
 
 export const handler = async (event) => {
   const characters = await fetchNarutoCharacters();
