@@ -2,8 +2,10 @@ import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as iot from "aws-cdk-lib/aws-iot";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as s3Assets from "aws-cdk-lib/aws-s3-assets";
 import { CustomResource } from "aws-cdk-lib/core";
 import { Provider } from "aws-cdk-lib/custom-resources";
+import * as path from "path";
 
 import { Construct } from "constructs";
 
@@ -42,6 +44,10 @@ export class LocalLambdaStack extends cdk.Stack {
       },
     });
 
+    const asset = new s3Assets.Asset(this, "LocalLambdaStubAsset", {
+      path: path.join(__dirname, "../../local-lambda-stub.zip"),
+    });
+
     // Stub Lambda
     const stubProviderLambda = new lambda.Function(
       this,
@@ -62,10 +68,11 @@ export class LocalLambdaStack extends cdk.Stack {
           if (RequestType === "Create" || RequestType === "Update") {
             try {
               console.log("Updating Lambda function code...");
+              const { s3BucketName, s3ObjectKey } = event.ResourceProperties;
               const command = new UpdateFunctionCodeCommand({
                 FunctionName: "${functionName}",
-                S3Bucket: "local-lambda-stub",
-                S3Key: "local-lambda-stub.zip", 
+                S3Bucket: s3BucketName,
+                S3Key: s3ObjectKey,
               });
               const response = await lambda.send(command);
 
@@ -177,10 +184,7 @@ export class LocalLambdaStack extends cdk.Stack {
       })
     );
 
-    stubProviderLambda.role?.addManagedPolicy(
-      iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonS3ReadOnlyAccess")
-    );
-
+    asset.grantRead(stubProviderLambda.role!);
     const customResourceProvider = new Provider(this, "StubProvider", {
       onEventHandler: stubProviderLambda,
     });
@@ -189,6 +193,8 @@ export class LocalLambdaStack extends cdk.Stack {
       serviceToken: customResourceProvider.serviceToken,
       properties: {
         deployement: Math.random(), // this is to invoke custom resource whenver the cli process starts
+        s3BucketName: asset.s3BucketName,
+        s3ObjectKey: asset.s3ObjectKey,
       },
     });
 
