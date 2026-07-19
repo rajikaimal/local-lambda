@@ -56,7 +56,11 @@ async function deployStubStack(): Promise<void> {
         await client.send(updateCommand);
         console.log(`Stack ${stack.stackName} update initiated.`);
       } catch (error: unknown) {
-        if (error instanceof Error && error.name === "NothingToUpdate") {
+        if (
+          error instanceof Error &&
+          error.name === "ValidationError" &&
+          error.message.includes("No updates are to be performed")
+        ) {
           console.log(`Stack ${stack.stackName} is already up to date.`);
         } else {
           throw error;
