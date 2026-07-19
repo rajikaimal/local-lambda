@@ -53,43 +53,78 @@ export class LocalLambdaStack extends cdk.Stack {
       this,
       "StubProviderLambdaFn",
       {
-        runtime: lambda.Runtime.NODEJS_18_X, // or another runtime of your choice
-        handler: "index.onEvent", // points to the onEvent handler in your index.ts file
+        runtime: lambda.Runtime.NODEJS_18_X,
+        handler: "index.onEvent",
         code: lambda.Code.fromInline(`
-        const { LambdaClient, UpdateFunctionCodeCommand, GetFunctionCommand } = require("@aws-sdk/client-lambda");
+        const { LambdaClient, UpdateFunctionCodeCommand, GetFunctionCommand, waitUntilFunctionUpdatedV2 } = require("@aws-sdk/client-lambda");
         const { IAMClient, PutRolePolicyCommand, UpdateAssumeRolePolicyCommand } = require("@aws-sdk/client-iam");
+        const { STSClient, GetCallerIdentityCommand } = require("@aws-sdk/client-sts");
+
+        async function waitForFunctionActive(lambdaClient, functionName, maxAttempts, delayMs) {
+          for (let i = 0; i < maxAttempts; i++) {
+            const cmd = new GetFunctionCommand({ FunctionName: functionName });
+            const res = await lambdaClient.send(cmd);
+            const state = res.Configuration?.State;
+            const lastUpdateStatus = res.Configuration?.LastUpdateStatus;
+            if (state === "Active" && lastUpdateStatus === "Successful") {
+              return;
+            }
+            if (lastUpdateStatus === "Failed") {
+              throw new Error("Lambda function is in Failed state: " + (res.Configuration?.LastUpdateStatusReason || "unknown"));
+            }
+            console.log("Function state: " + state + ", lastUpdateStatus: " + lastUpdateStatus + ", waiting...");
+            await new Promise(r => setTimeout(r, delayMs));
+          }
+          throw new Error("Timed out waiting for Lambda function to become Active");
+        }
+
+        async function updateWithRetry(lambdaClient, functionName, s3Bucket, s3Key, maxAttempts, delayMs) {
+          for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+              console.log("Attempt " + attempt + "/" + maxAttempts + " - Updating Lambda function code...");
+              await waitForFunctionActive(lambdaClient, functionName, 30, 2000);
+              const command = new UpdateFunctionCodeCommand({
+                FunctionName: functionName,
+                S3Bucket: s3Bucket,
+                S3Key: s3Key,
+              });
+              const response = await lambdaClient.send(command);
+              console.log("Lambda update initiated, waiting for activation...");
+              await waitForFunctionActive(lambdaClient, functionName, 30, 2000);
+              console.log("Lambda function code updated successfully.");
+              return response;
+            } catch (error) {
+              if (error.name === "ResourceConflictException" && attempt < maxAttempts) {
+                console.log("Resource conflict, retrying in " + delayMs + "ms...");
+                await new Promise(r => setTimeout(r, delayMs));
+                continue;
+              }
+              throw error;
+            }
+          }
+        }
 
         exports.onEvent = async (event) => {
           console.log("Received event:", JSON.stringify(event, null, 2));
 
           const { RequestType } = event;
           const lambda = new LambdaClient({});
+          const functionName = "${functionName}";
 
           if (RequestType === "Create" || RequestType === "Update") {
             try {
-              console.log("Updating Lambda function code...");
               const { s3BucketName, s3ObjectKey } = event.ResourceProperties;
-              const command = new UpdateFunctionCodeCommand({
-                FunctionName: "${functionName}",
-                S3Bucket: s3BucketName,
-                S3Key: s3ObjectKey,
-              });
-              const response = await lambda.send(command);
-
-              console.log("Lambda update response:", response);
-              console.log("Updating role");
+              await updateWithRetry(lambda, functionName, s3BucketName, s3ObjectKey, 5, 5000);
 
               console.log("Fetching lambda role details");
-
-              const getFunctionCommand = new GetFunctionCommand({
-                FunctionName: "${functionName}",
-              });
+              const getFunctionCommand = new GetFunctionCommand({ FunctionName: functionName });
               const lambdaData = await lambda.send(getFunctionCommand);
-              const roleName = lambdaData.Configuration.Role.split('/').pop(); // Extract role name from ARN
+              const roleName = lambdaData.Configuration.Role.split('/').pop();
 
               console.log("Role name:", roleName);
 
               const iamClient = new IAMClient({ region: "${process.env.AWS_REGION}" });
+
               const roleCommand = new PutRolePolicyCommand({
                 RoleName: roleName,
                 PolicyName: "IoTPolicy",
@@ -97,16 +132,14 @@ export class LocalLambdaStack extends cdk.Stack {
                   Version: "2012-10-17",
                   Statement: [
                     {
-                      "Effect": "Allow",
-                      "Action": "iot:Publish",
-                      "Resource": "*"
+                      Effect: "Allow",
+                      Action: "iot:Publish",
+                      Resource: "*"
                     },
                     {
-                      "Effect": "Allow",
-                      "Action": [
-                        "iot:*"
-                      ],
-                      "Resource": "*"
+                      Effect: "Allow",
+                      Action: ["iot:Subscribe", "iot:Receive", "iot:Connect"],
+                      Resource: "*"
                     }
                   ],
                 }),
@@ -116,7 +149,10 @@ export class LocalLambdaStack extends cdk.Stack {
 
               console.log("Updating trust relationship");
 
-              // llambda cli should be able to assume role hence this update
+              const stsClient = new STSClient({ region: "${process.env.AWS_REGION}" });
+              const identity = await stsClient.send(new GetCallerIdentityCommand({}));
+              const callerArn = identity.Arn;
+
               const newTrustPolicy = {
                 Version: '2012-10-17',
                 Statement: [
@@ -126,11 +162,9 @@ export class LocalLambdaStack extends cdk.Stack {
                     Action: 'sts:AssumeRole',
                   },
                   {
-                    "Effect": "Allow",
-                    "Principal": {
-                        "AWS": "arn:aws:iam::376461377045:user/admin"
-                    },
-                    "Action": "sts:AssumeRole"
+                    Effect: "Allow",
+                    Principal: { AWS: callerArn },
+                    Action: "sts:AssumeRole"
                   }
                 ],
               };
@@ -153,8 +187,8 @@ export class LocalLambdaStack extends cdk.Stack {
           };
         };
       `),
-        timeout: cdk.Duration.seconds(30),
-      }
+        timeout: cdk.Duration.seconds(120),
+      },
     );
 
     stubProviderLambda.role?.attachInlinePolicy(
@@ -180,8 +214,12 @@ export class LocalLambdaStack extends cdk.Stack {
             actions: ["iam:PutRolePolicy"],
             resources: ["*"],
           }),
+          new iam.PolicyStatement({
+            actions: ["sts:GetCallerIdentity"],
+            resources: ["*"],
+          }),
         ],
-      })
+      }),
     );
 
     asset.grantRead(stubProviderLambda.role!);
