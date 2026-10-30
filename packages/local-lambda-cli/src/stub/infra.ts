@@ -19,6 +19,21 @@ export class LocalLambdaStack extends cdk.Stack {
     // Lambda function to debug
     const functionName = props.functionName;
 
+    // Fail fast if APP/SERVICE are not set — the IoT topic permissions below
+    // are derived from them and would otherwise be meaningless.
+    if (!process.env.APP || !process.env.SERVICE) {
+      throw new Error(
+        "APP and SERVICE env variables must be set before running llambda (e.g. export APP=myapp SERVICE=myservice FN=myfunction)",
+      );
+    }
+    const appName = process.env.APP;
+    const serviceName = process.env.SERVICE;
+
+    // Scoped topic addresses for this function's relay channel
+    const iotArnBase = `arn:aws:iot:${this.region}:${this.account}`;
+    const topicBase = `local-lambda/${appName}/${serviceName}/${functionName}`;
+    const clientPattern = `local-lambda-${functionName}-*`;
+
     // IoT Thing
     new iot.CfnThing(this, "LocalLambdaIotThing", {
       thingName: "LocalLambdaThing",
@@ -32,13 +47,21 @@ export class LocalLambdaStack extends cdk.Stack {
         Statement: [
           {
             Effect: "Allow",
-            Action: [
-              "iot:Connect",
-              "iot:Subscribe",
-              "iot:Publish",
-              "iot:Receive",
+            Action: "iot:Connect",
+            Resource: [`${iotArnBase}:client/${clientPattern}`],
+          },
+          {
+            Effect: "Allow",
+            Action: "iot:Publish",
+            Resource: [
+              `${iotArnBase}:topic/${topicBase}`,
+              `${iotArnBase}:topic/${topicBase}/*`,
             ],
-            Resource: ["*"],
+          },
+          {
+            Effect: "Allow",
+            Action: ["iot:Subscribe", "iot:Receive"],
+            Resource: [`${iotArnBase}:topicfilter/${topicBase}/*`],
           },
         ],
       },
@@ -121,7 +144,13 @@ export class LocalLambdaStack extends cdk.Stack {
               const lambdaData = await lambda.send(getFunctionCommand);
               const roleName = lambdaData.Configuration.Role.split('/').pop();
 
-              console.log("Role name:", roleName);
+              const appName = "${process.env.APP}";
+              const serviceName = "${process.env.SERVICE}";
+              const topicBase = "local-lambda/" + appName + "/" + serviceName + "/" + functionName;
+
+              const stsClient = new STSClient({ region: "${process.env.AWS_REGION}" });
+              const identity = await stsClient.send(new GetCallerIdentityCommand({}));
+              const iotArnBase = "arn:aws:iot:" + "${process.env.AWS_REGION}" + ":" + identity.Account;
 
               const iamClient = new IAMClient({ region: "${process.env.AWS_REGION}" });
 
@@ -133,13 +162,18 @@ export class LocalLambdaStack extends cdk.Stack {
                   Statement: [
                     {
                       Effect: "Allow",
-                      Action: "iot:Publish",
-                      Resource: "*"
+                      Action: "iot:Connect",
+                      Resource: iotArnBase + ":client/local-lambda-" + functionName + "-*"
                     },
                     {
                       Effect: "Allow",
-                      Action: ["iot:Subscribe", "iot:Receive", "iot:Connect"],
-                      Resource: "*"
+                      Action: "iot:Publish",
+                      Resource: [iotArnBase + ":topic/" + topicBase, iotArnBase + ":topic/" + topicBase + "/*"]
+                    },
+                    {
+                      Effect: "Allow",
+                      Action: ["iot:Subscribe", "iot:Receive"],
+                      Resource: [iotArnBase + ":topicfilter/" + topicBase + "/*", iotArnBase + ":topic/" + topicBase + "/*"]
                     }
                   ],
                 }),
@@ -149,8 +183,6 @@ export class LocalLambdaStack extends cdk.Stack {
 
               console.log("Updating trust relationship");
 
-              const stsClient = new STSClient({ region: "${process.env.AWS_REGION}" });
-              const identity = await stsClient.send(new GetCallerIdentityCommand({}));
               const callerArn = identity.Arn;
 
               const newTrustPolicy = {
@@ -208,13 +240,14 @@ export class LocalLambdaStack extends cdk.Stack {
           }),
           new iam.PolicyStatement({
             actions: ["iam:UpdateAssumeRolePolicy"],
-            resources: ["*"],
+            resources: [`arn:aws:iam::${this.account}:role/*`],
           }),
           new iam.PolicyStatement({
             actions: ["iam:PutRolePolicy"],
-            resources: ["*"],
+            resources: [`arn:aws:iam::${this.account}:role/*`],
           }),
           new iam.PolicyStatement({
+            // sts:GetCallerIdentity does not support resource-level scoping
             actions: ["sts:GetCallerIdentity"],
             resources: ["*"],
           }),

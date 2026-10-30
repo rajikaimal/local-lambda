@@ -1,7 +1,6 @@
 import chokidar from "chokidar";
 import * as path from "node:path";
 import { buildApplicationLambda } from "./build";
-import config from "./config";
 import { logger } from "./logger";
 
 const watcher = () => {
@@ -14,11 +13,13 @@ const watcher = () => {
     ignored: ["node_modules/**", "**/.git/**", "**/dist"], // Exclude specific directories
   });
 
-  watcher.on("change", async (path) => {
+  watcher.on("change", async (_changedPath) => {
     logger.info("Rebuilding");
     try {
       await buildApplicationLambda();
-    } catch (e) {}
+    } catch (e) {
+      logger.error("Rebuild failed:", e);
+    }
   });
 
   watcher.on("error", (error) => logger.info(`Watcher error: ${error}`));

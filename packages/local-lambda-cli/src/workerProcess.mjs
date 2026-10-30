@@ -1,5 +1,4 @@
 import { parentPort, workerData } from "node:worker_threads";
-import { fileURLToPath } from "url";
 import path from "node:path";
 
 // Call the Lambda handler function

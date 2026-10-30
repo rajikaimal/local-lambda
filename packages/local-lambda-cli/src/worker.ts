@@ -4,11 +4,11 @@ import path from "node:path";
 import { logger } from "./logger";
 
 export interface WorkerData {
-  event: any;
+  event: unknown;
   credentials: Credentials;
 }
 
-async function worker(workerData: WorkerData): Promise<any> {
+async function worker(workerData: WorkerData): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const workerPath = path.resolve(__dirname, "./workerProcess.mjs");
     const hostEnv = process.env;
@@ -39,9 +39,9 @@ async function worker(workerData: WorkerData): Promise<any> {
     });
 
     // Handle errors
-    worker.on("error", (error) => {
-      logger.error("Worker error", error);
-      reject(error);
+    worker.on("error", (err) => {
+      logger.error("Worker error", err);
+      reject(err);
     });
 
     // Handle worker exit

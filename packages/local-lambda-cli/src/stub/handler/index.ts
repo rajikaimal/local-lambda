@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { DescribeEndpointCommand, IoTClient } from "@aws-sdk/client-iot";
 import {
   IoTDataPlaneClient,
@@ -13,7 +12,7 @@ const topic = `local-lambda/${process.env.APP}/${process.env.SERVICE}/${process.
 const client = new IoTClient();
 const command = new DescribeEndpointCommand({ endpointType: "iot:Data-ATS" });
 
-let onMessage: (evt: any) => void;
+let onMessage: ((evt: unknown) => void) | undefined;
 let device: iotSdk.device;
 
 client.send(command).then((res) => {
@@ -22,6 +21,7 @@ client.send(command).then((res) => {
     debug: true,
     host: res.endpointAddress,
     region: process.env.AWS_REGION,
+    clientId: `local-lambda-${process.env.FN}-${workerId}`,
     keepalive: 60,
   });
   device.on("error", console.log);
@@ -33,13 +33,13 @@ client.send(command).then((res) => {
   device.on("message", async (_topic, buffer: Buffer) => {
     const evt = JSON.parse(buffer.toString());
     console.log("Recieved fragment", evt);
-    onMessage(evt);
+    onMessage?.(evt);
   });
 });
 
 const iotClient = new IoTDataPlaneClient({ region: process.env.AWS_REGION });
 
-export const handler = async (event: any, context: any) => {
+export const handler = async (event: unknown, context: unknown) => {
   const message = JSON.stringify({
     event,
     context,
@@ -48,7 +48,7 @@ export const handler = async (event: any, context: any) => {
   });
 
   try {
-    const result = await new Promise<any>((r) => {
+    const result = await new Promise<unknown>((r) => {
       onMessage = (evt) => {
         console.log("Message recieved", evt);
         r(evt);

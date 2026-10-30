@@ -29,7 +29,7 @@ async function fetchNarutoCharacters(): Promise<Character[]> {
 
 const sqs = new SQSClient();
 
-export const handler = async (event) => {
+export const handler = async (_event) => {
   const characters = await fetchNarutoCharacters();
   const params = {
     QueueUrl: process.env.QUEUE_URL,
