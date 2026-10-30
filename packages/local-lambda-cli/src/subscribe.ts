@@ -24,7 +24,7 @@ async function subscribe({ credentials }: { credentials: Credentials }) {
   const response = await iot.send(
     new DescribeEndpointCommand({
       endpointType: "iot:Data-ATS",
-    })
+    }),
   );
 
   const device = new iotSdk.device({
@@ -46,7 +46,7 @@ async function subscribe({ credentials }: { credentials: Credentials }) {
   });
 
   device.on("error", (err) => {
-    logger.info("error");
+    logger.error("IoT device error:", err);
   });
 
   device.on("close", () => {
